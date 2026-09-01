@@ -1,9 +1,10 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
-const { config } = require('../config/env');
+const { config, updateConfig } = require('../config/env');
 const { generateToken, requireAuth } = require('../middleware/auth');
 const sheets = require('../services/googleSheets');
 const logger = require('../utils/logger');
+const SHEETS_CONFIG = require('../config/sheets');
 
 const router = express.Router();
 
@@ -199,6 +200,53 @@ router.get('/api/export/:format', requireAuth, async (req, res) => {
   }
 });
 
+router.get('/api/config/status', requireAuth, (req, res) => {
+  res.json({
+    success: true,
+    demoMode: config.demoMode,
+    googleSheetsId: config.googleSheetsId ? `...${config.googleSheetsId.slice(-6)}` : null,
+    googleServiceAccountEmail: config.googleServiceAccountEmail || null,
+  });
+});
+
+router.post('/api/config/test', requireAuth, async (req, res) => {
+  try {
+    const { googleSheetsId, googleServiceAccountEmail, googlePrivateKey } = req.body;
+    if (!googleSheetsId || !googleServiceAccountEmail || !googlePrivateKey) {
+      return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
+    }
+    const result = await sheets.testConnection(googleSheetsId, googleServiceAccountEmail, googlePrivateKey);
+    res.json({ success: true, title: result.title, sheets: result.sheets });
+  } catch (err) {
+    logger.error('Falha ao testar conexão Google Sheets', { error: err.message });
+    let message = 'Falha na conexão';
+    if (err.message.includes('invalid_grant')) message = 'Credenciais inválidas. Verifique o e-mail e a chave privada.';
+    else if (err.message.includes('not found') || err.message.includes('404')) message = 'Planilha não encontrada. Verifique o ID.';
+    else if (err.message.includes('permission') || err.message.includes('403')) message = 'Sem permissão. Compartilhe a planilha com o e-mail da conta de serviço.';
+    else message = `Erro: ${err.message}`;
+    res.status(400).json({ error: message });
+  }
+});
+
+router.post('/api/config/save', requireAuth, async (req, res) => {
+  try {
+    const { googleSheetsId, googleServiceAccountEmail, googlePrivateKey } = req.body;
+    if (!googleSheetsId || !googleServiceAccountEmail || !googlePrivateKey) {
+      return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
+    }
+    await sheets.testConnection(googleSheetsId, googleServiceAccountEmail, googlePrivateKey);
+    updateConfig({ googleSheetsId, googleServiceAccountEmail, googlePrivateKey });
+    sheets.reconfigure();
+    await sheets.initializeSheets();
+    await sheets.addLog('CONFIG_ATUALIZADA', req.user.username, 'Conexão Google Sheets configurada', req.ip);
+    logger.info('Configuração Google Sheets atualizada');
+    res.json({ success: true, message: 'Conexão salva com sucesso! O sistema agora usa o Google Sheets.' });
+  } catch (err) {
+    logger.error('Falha ao salvar configuração', { error: err.message });
+    res.status(400).json({ error: `Falha ao salvar: ${err.message}` });
+  }
+});
+
 function renderLoginPage() {
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -283,6 +331,7 @@ function renderAdminPanel() {
       <button class="nav-btn active" data-tab="chamadas">Chamadas</button>
       <button class="nav-btn" data-tab="presencas">Presenças</button>
       <button class="nav-btn" data-tab="relatorios">Relatórios</button>
+      <button class="nav-btn" data-tab="configuracoes">Configurações</button>
       <button class="nav-btn logout" id="btnLogout">Sair</button>
     </nav>
   </header>
@@ -371,6 +420,81 @@ function renderAdminPanel() {
             <option value="xlsx">XLSX</option>
           </select>
           <button id="btnExportar" class="btn-primary">Exportar</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab: Configurações -->
+    <section id="tab-configuracoes" class="tab-content">
+      <h2>Configurações — Google Sheets</h2>
+
+      <div class="config-status" id="configStatus">
+        <div class="status-indicator" id="statusIndicator">
+          <span class="status-dot"></span>
+          <span class="status-text">Verificando...</span>
+        </div>
+      </div>
+
+      <div class="report-section">
+        <h3>Credenciais do Google Sheets</h3>
+        <div class="form-group">
+          <label for="cfgSheetsId">ID da Planilha</label>
+          <input type="text" id="cfgSheetsId" placeholder="Ex: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms">
+          <small class="field-hint">Encontre no URL da planilha: docs.google.com/spreadsheets/d/<strong>[ID]</strong>/edit</small>
+        </div>
+        <div class="form-group">
+          <label for="cfgEmail">E-mail da Conta de Serviço</label>
+          <input type="text" id="cfgEmail" placeholder="Ex: meu-servico@meu-projeto.iam.gserviceaccount.com">
+        </div>
+        <div class="form-group">
+          <label for="cfgPrivateKey">Chave Privada</label>
+          <textarea id="cfgPrivateKey" rows="6" placeholder="Cole a chave privada do JSON (começa com -----BEGIN PRIVATE KEY-----)"></textarea>
+        </div>
+        <div class="config-buttons">
+          <button id="btnTestarConexao" class="btn-primary">Testar Conexão</button>
+          <button id="btnSalvarConfig" class="btn-secondary" disabled>Salvar Configuração</button>
+        </div>
+        <div id="configFeedback" class="feedback" hidden></div>
+      </div>
+
+      <div class="report-section">
+        <h3>Como configurar</h3>
+        <div class="setup-guide">
+          <div class="guide-step">
+            <span class="step-number">1</span>
+            <div>
+              <strong>Criar projeto no Google Cloud</strong>
+              <p>Acesse <em>console.cloud.google.com</em>, crie um projeto e ative a <strong>Google Sheets API</strong>.</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <span class="step-number">2</span>
+            <div>
+              <strong>Criar Conta de Serviço</strong>
+              <p>Em <em>IAM e Admin → Contas de Serviço</em>, crie uma conta e gere uma chave JSON.</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <span class="step-number">3</span>
+            <div>
+              <strong>Criar a Planilha</strong>
+              <p>Crie uma planilha no Google Sheets. O sistema criará as abas automaticamente (Alunos, Chamadas, Presenças, Logs).</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <span class="step-number">4</span>
+            <div>
+              <strong>Compartilhar a Planilha</strong>
+              <p>Compartilhe a planilha com o <strong>e-mail da conta de serviço</strong> (permissão de Editor).</p>
+            </div>
+          </div>
+          <div class="guide-step">
+            <span class="step-number">5</span>
+            <div>
+              <strong>Preencher os campos acima</strong>
+              <p>Cole o ID da planilha, o e-mail da conta de serviço e a chave privada do arquivo JSON.</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>

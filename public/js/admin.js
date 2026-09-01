@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initChamadas();
   initPresencas();
   initRelatorios();
+  initConfiguracoes();
   initLogout();
 });
 
@@ -276,4 +277,119 @@ function initRelatorios() {
     const formato = document.getElementById('exportFormato').value;
     window.location.href = `/admin/api/export/${formato}?tipo=${tipo}`;
   });
+}
+
+function initConfiguracoes() {
+  const btnTestar = document.getElementById('btnTestarConexao');
+  const btnSalvar = document.getElementById('btnSalvarConfig');
+  const feedback = document.getElementById('configFeedback');
+
+  loadConfigStatus();
+
+  btnTestar.addEventListener('click', async () => {
+    const creds = getConfigFields();
+    if (!creds) return;
+
+    btnTestar.disabled = true;
+    btnTestar.textContent = 'Testando...';
+    feedback.hidden = true;
+
+    try {
+      const res = await fetch('/admin/api/config/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(creds),
+      });
+      const data = await res.json();
+
+      feedback.hidden = false;
+      if (data.success) {
+        feedback.className = 'feedback success';
+        feedback.innerHTML = '<strong>Conexão bem-sucedida!</strong><br>' +
+          'Planilha: ' + data.title + '<br>' +
+          'Abas encontradas: ' + data.sheets.join(', ');
+        btnSalvar.disabled = false;
+      } else {
+        feedback.className = 'feedback error';
+        feedback.innerHTML = '<strong>' + data.error + '</strong>';
+        btnSalvar.disabled = true;
+      }
+    } catch (err) {
+      feedback.hidden = false;
+      feedback.className = 'feedback error';
+      feedback.innerHTML = '<strong>Erro de conexão com o servidor</strong>';
+      btnSalvar.disabled = true;
+    }
+
+    btnTestar.disabled = false;
+    btnTestar.textContent = 'Testar Conexão';
+  });
+
+  btnSalvar.addEventListener('click', async () => {
+    const creds = getConfigFields();
+    if (!creds) return;
+
+    if (!confirm('Deseja salvar e conectar ao Google Sheets? O modo demonstração será desativado.')) return;
+
+    btnSalvar.disabled = true;
+    btnSalvar.textContent = 'Salvando...';
+    feedback.hidden = true;
+
+    try {
+      const res = await fetch('/admin/api/config/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(creds),
+      });
+      const data = await res.json();
+
+      feedback.hidden = false;
+      if (data.success) {
+        feedback.className = 'feedback success';
+        feedback.innerHTML = '<strong>' + data.message + '</strong>';
+        loadConfigStatus();
+      } else {
+        feedback.className = 'feedback error';
+        feedback.innerHTML = '<strong>' + data.error + '</strong>';
+      }
+    } catch (err) {
+      feedback.hidden = false;
+      feedback.className = 'feedback error';
+      feedback.innerHTML = '<strong>Erro ao salvar configuração</strong>';
+    }
+
+    btnSalvar.disabled = false;
+    btnSalvar.textContent = 'Salvar Configuração';
+  });
+}
+
+function getConfigFields() {
+  const googleSheetsId = document.getElementById('cfgSheetsId').value.trim();
+  const googleServiceAccountEmail = document.getElementById('cfgEmail').value.trim();
+  const googlePrivateKey = document.getElementById('cfgPrivateKey').value.trim();
+
+  if (!googleSheetsId || !googleServiceAccountEmail || !googlePrivateKey) {
+    alert('Preencha todos os campos');
+    return null;
+  }
+  return { googleSheetsId, googleServiceAccountEmail, googlePrivateKey };
+}
+
+async function loadConfigStatus() {
+  const indicator = document.getElementById('statusIndicator');
+  try {
+    const res = await fetch('/admin/api/config/status');
+    const data = await res.json();
+
+    if (data.demoMode) {
+      indicator.className = 'status-indicator demo';
+      indicator.innerHTML = '<span class="status-dot"></span><span class="status-text">Modo Demonstração — dados em memória</span>';
+    } else {
+      indicator.className = 'status-indicator connected';
+      indicator.innerHTML = '<span class="status-dot"></span><span class="status-text">Conectado ao Google Sheets (' + (data.googleServiceAccountEmail || '') + ')</span>';
+    }
+  } catch (err) {
+    indicator.className = 'status-indicator demo';
+    indicator.innerHTML = '<span class="status-dot"></span><span class="status-text">Erro ao verificar status</span>';
+  }
 }

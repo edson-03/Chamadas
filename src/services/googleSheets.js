@@ -2,8 +2,6 @@ const { config } = require('../config/env');
 const SHEETS = require('../config/sheets');
 const logger = require('../utils/logger');
 
-const DEMO_MODE = config.demoMode;
-
 // --- Armazenamento em memória para modo demonstração ---
 
 const memoryStore = {
@@ -67,7 +65,7 @@ function getSheets() {
 // --- Funções públicas (despacham para memória ou API) ---
 
 async function readSheet(range) {
-  if (DEMO_MODE) return memReadSheet(range);
+  if (config.demoMode) return memReadSheet(range);
 
   const sheets = getSheets();
   const response = await sheets.spreadsheets.values.get({
@@ -78,7 +76,7 @@ async function readSheet(range) {
 }
 
 async function appendRow(sheetName, values) {
-  if (DEMO_MODE) { memAppendRow(sheetName, values); return; }
+  if (config.demoMode) { memAppendRow(sheetName, values); return; }
 
   const sheets = getSheets();
   await sheets.spreadsheets.values.append({
@@ -91,7 +89,7 @@ async function appendRow(sheetName, values) {
 }
 
 async function appendRows(sheetName, rows) {
-  if (DEMO_MODE) { rows.forEach(r => memAppendRow(sheetName, r)); return; }
+  if (config.demoMode) { rows.forEach(r => memAppendRow(sheetName, r)); return; }
 
   const sheets = getSheets();
   await sheets.spreadsheets.values.append({
@@ -104,7 +102,7 @@ async function appendRows(sheetName, rows) {
 }
 
 async function updateCell(range, value) {
-  if (DEMO_MODE) { memUpdateCell(range, value); return; }
+  if (config.demoMode) { memUpdateCell(range, value); return; }
 
   const sheets = getSheets();
   await sheets.spreadsheets.values.update({
@@ -116,7 +114,7 @@ async function updateCell(range, value) {
 }
 
 async function ensureSheetExists(sheetName, headers) {
-  if (DEMO_MODE) {
+  if (config.demoMode) {
     if (!memoryStore[sheetName]) {
       memoryStore[sheetName] = [headers];
       logger.info(`Aba "${sheetName}" criada com cabeçalhos (modo demonstração)`);
@@ -151,7 +149,7 @@ async function ensureSheetExists(sheetName, headers) {
 }
 
 async function initializeSheets() {
-  if (DEMO_MODE) {
+  if (config.demoMode) {
     logger.info('Modo demonstração ativo — dados armazenados em memória');
     logger.info('Alunos de teste carregados: 20240001 a 20240006');
     return;
@@ -245,6 +243,24 @@ async function addLog(evento, usuario, detalhes, ip) {
   await appendRow(SHEETS.LOGS.name, [timestamp, evento, usuario, detalhes, ip]);
 }
 
+async function testConnection(sheetsId, email, privateKey) {
+  const { google } = require('googleapis');
+  const auth = new google.auth.JWT(
+    email, null, privateKey.replace(/\\n/g, '\n'),
+    ['https://www.googleapis.com/auth/spreadsheets']
+  );
+  const sheets = google.sheets({ version: 'v4', auth });
+  const meta = await sheets.spreadsheets.get({ spreadsheetId: sheetsId });
+  return {
+    title: meta.data.properties.title,
+    sheets: meta.data.sheets.map(s => s.properties.title),
+  };
+}
+
+function reconfigure() {
+  sheetsInstance = null;
+}
+
 module.exports = {
   initializeSheets,
   readSheet,
@@ -260,4 +276,6 @@ module.exports = {
   getAllPresencas,
   checkDuplicatePresenca,
   addLog,
+  testConnection,
+  reconfigure,
 };

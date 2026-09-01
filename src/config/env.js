@@ -25,4 +25,11 @@ function validateConfig() {
   }
 }
 
-module.exports = { config, validateConfig };
+function updateConfig(updates) {
+  if (updates.googleSheetsId) config.googleSheetsId = updates.googleSheetsId;
+  if (updates.googleServiceAccountEmail) config.googleServiceAccountEmail = updates.googleServiceAccountEmail;
+  if (updates.googlePrivateKey) config.googlePrivateKey = updates.googlePrivateKey.replace(/\\n/g, '\n');
+  config.demoMode = false;
+}
+
+module.exports = { config, validateConfig, updateConfig };
