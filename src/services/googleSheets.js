@@ -2,7 +2,7 @@ const { config } = require('../config/env');
 const SHEETS = require('../config/sheets');
 const logger = require('../utils/logger');
 
-const DEMO_MODE = process.env.DEMO_MODE === 'true';
+const DEMO_MODE = config.demoMode;
 
 // --- Armazenamento em memória para modo demonstração ---
 
