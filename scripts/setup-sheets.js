@@ -4,13 +4,13 @@ const logger = require('../src/utils/logger');
 
 async function main() {
   try {
-    logger.info('Initializing Google Sheets...');
+    logger.info('Inicializando Google Sheets...');
     await initializeSheets();
-    logger.info('All sheets created successfully!');
-    logger.info('Sheets: Alunos, Chamadas, Presenças, Logs');
+    logger.info('Todas as abas criadas com sucesso!');
+    logger.info('Abas: Alunos, Chamadas, Presenças, Logs');
     process.exit(0);
   } catch (err) {
-    logger.error('Setup failed', { error: err.message });
+    logger.error('Falha na configuração', { error: err.message });
     process.exit(1);
   }
 }

@@ -41,7 +41,7 @@ router.post('/login', async (req, res) => {
     await sheets.addLog('LOGIN_SUCESSO', username, 'Login realizado', req.ip);
     res.json({ success: true, token });
   } catch (err) {
-    logger.error('Login error', { error: err.message });
+    logger.error('Erro no login', { error: err.message });
     res.status(500).json({ error: 'Erro interno' });
   }
 });
@@ -60,7 +60,7 @@ router.get('/api/chamadas', requireAuth, async (req, res) => {
     const chamadas = await sheets.getAllChamadas();
     res.json({ success: true, chamadas });
   } catch (err) {
-    logger.error('Failed to list chamadas', { error: err.message });
+    logger.error('Falha ao listar chamadas', { error: err.message });
     res.status(500).json({ error: 'Erro ao buscar chamadas' });
   }
 });
@@ -70,7 +70,7 @@ router.get('/api/alunos', requireAuth, async (req, res) => {
     const alunos = await sheets.getAllAlunos();
     res.json({ success: true, alunos });
   } catch (err) {
-    logger.error('Failed to list alunos', { error: err.message });
+    logger.error('Falha ao listar alunos', { error: err.message });
     res.status(500).json({ error: 'Erro ao buscar alunos' });
   }
 });
@@ -97,7 +97,7 @@ router.get('/api/presencas', requireAuth, async (req, res) => {
 
     res.json({ success: true, presencas: filtered, total: filtered.length });
   } catch (err) {
-    logger.error('Failed to list presencas', { error: err.message });
+    logger.error('Falha ao listar presenças', { error: err.message });
     res.status(500).json({ error: 'Erro ao buscar presenças' });
   }
 });
@@ -123,7 +123,7 @@ router.get('/api/relatorio/aluno/:matricula', requireAuth, async (req, res) => {
       presencas: filtered,
     });
   } catch (err) {
-    logger.error('Failed to generate aluno report', { error: err.message });
+    logger.error('Falha ao gerar relatório do aluno', { error: err.message });
     res.status(500).json({ error: 'Erro ao gerar relatório' });
   }
 });
@@ -151,7 +151,7 @@ router.get('/api/relatorio/turma/:turma', requireAuth, async (req, res) => {
 
     res.json({ success: true, turma: req.params.turma, totalAlunos: turmaAlunos.length, totalChamadas, relatorio });
   } catch (err) {
-    logger.error('Failed to generate turma report', { error: err.message });
+    logger.error('Falha ao gerar relatório da turma', { error: err.message });
     res.status(500).json({ error: 'Erro ao gerar relatório' });
   }
 });
@@ -194,7 +194,7 @@ router.get('/api/export/:format', requireAuth, async (req, res) => {
 
     res.status(400).json({ error: 'Formato não suportado. Use csv ou xlsx.' });
   } catch (err) {
-    logger.error('Failed to export', { error: err.message });
+    logger.error('Falha ao exportar dados', { error: err.message });
     res.status(500).json({ error: 'Erro ao exportar dados' });
   }
 });

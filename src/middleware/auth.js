@@ -25,7 +25,7 @@ function requireAuth(req, res, next) {
     req.user = decoded;
     next();
   } catch (err) {
-    logger.warn('Invalid auth token', { error: err.message, ip: req.ip });
+    logger.warn('Token de autenticação inválido', { error: err.message, ip: req.ip });
     if (req.headers.accept?.includes('text/html')) {
       res.clearCookie('auth_token');
       return res.redirect('/admin/login');

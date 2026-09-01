@@ -23,14 +23,14 @@ router.post('/criar', requireAuth, validateChamadaCreation, async (req, res) => 
     ]);
 
     await sheets.addLog('CHAMADA_CRIADA', req.user.username, `Chamada ${chamadaId} criada por ${responsavel}`, req.ip);
-    logger.info('Chamada created', { chamadaId, responsavel });
+    logger.info('Chamada criada', { chamadaId, responsavel });
 
     res.status(201).json({
       success: true,
       chamada: { id: chamadaId, data, hora, responsavel, link, status: 'aberta' },
     });
   } catch (err) {
-    logger.error('Failed to create chamada', { error: err.message });
+    logger.error('Falha ao criar chamada', { error: err.message });
     await sheets.addLog('ERRO', 'sistema', `Falha ao criar chamada: ${err.message}`, req.ip).catch(() => {});
     res.status(500).json({ error: 'Erro ao criar chamada. Tente novamente.' });
   }
@@ -54,11 +54,11 @@ router.post('/:chamadaId/encerrar', requireAuth, async (req, res) => {
 
     await sheets.updateCell(`${SHEETS_CONFIG.CHAMADAS.name}!F${rowIndex}`, 'encerrada');
     await sheets.addLog('CHAMADA_ENCERRADA', req.user.username, `Chamada ${chamadaId} encerrada`, req.ip);
-    logger.info('Chamada closed', { chamadaId });
+    logger.info('Chamada encerrada', { chamadaId });
 
     res.json({ success: true, message: 'Chamada encerrada com sucesso' });
   } catch (err) {
-    logger.error('Failed to close chamada', { error: err.message });
+    logger.error('Falha ao encerrar chamada', { error: err.message });
     res.status(500).json({ error: 'Erro ao encerrar chamada. Tente novamente.' });
   }
 });
@@ -77,7 +77,7 @@ router.get('/:chamadaId', async (req, res) => {
 
     res.send(renderPresencaPage(chamada));
   } catch (err) {
-    logger.error('Failed to load chamada page', { error: err.message });
+    logger.error('Falha ao carregar página da chamada', { error: err.message });
     res.status(500).send(renderErrorPage('Erro', 'Ocorreu um erro ao carregar a chamada. Tente novamente.'));
   }
 });
@@ -123,7 +123,7 @@ router.post('/:chamadaId/presenca', validateMatricula, async (req, res) => {
     ]);
 
     await sheets.addLog('PRESENCA_REGISTRADA', matricula, `Presença registrada: ${aluno.nome} (${matricula}) em ${chamadaId}`, req.ip);
-    logger.info('Attendance recorded', { chamadaId, matricula, nome: aluno.nome });
+    logger.info('Presença registrada', { chamadaId, matricula, nome: aluno.nome });
 
     res.json({
       success: true,
@@ -132,7 +132,7 @@ router.post('/:chamadaId/presenca', validateMatricula, async (req, res) => {
       horario: `${data} ${hora}`,
     });
   } catch (err) {
-    logger.error('Failed to record attendance', { error: err.message, chamadaId, matricula });
+    logger.error('Falha ao registrar presença', { error: err.message, chamadaId, matricula });
     await sheets.addLog('ERRO', matricula || 'desconhecido', `Erro ao registrar presença: ${err.message}`, req.ip).catch(() => {});
     res.status(500).json({ error: 'Erro ao registrar presença. Tente novamente.' });
   }
@@ -143,7 +143,7 @@ router.get('/:chamadaId/presencas', requireAuth, async (req, res) => {
     const presencas = await sheets.getPresencasByChamada(req.params.chamadaId);
     res.json({ success: true, presencas, total: presencas.length });
   } catch (err) {
-    logger.error('Failed to get presencas', { error: err.message });
+    logger.error('Falha ao buscar presenças', { error: err.message });
     res.status(500).json({ error: 'Erro ao buscar presenças' });
   }
 });

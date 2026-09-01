@@ -8,25 +8,25 @@ process.env.GOOGLE_PRIVATE_KEY = 'test-key';
 
 const { generateToken, verifyToken } = require('../src/middleware/auth');
 
-describe('JWT auth', () => {
-  it('generates a valid token', () => {
+describe('Autenticação JWT', () => {
+  it('gera um token válido', () => {
     const token = generateToken('admin');
     assert.ok(typeof token === 'string');
     assert.ok(token.length > 0);
   });
 
-  it('verifies a valid token', () => {
+  it('verifica um token válido', () => {
     const token = generateToken('testuser');
     const decoded = verifyToken(token);
     assert.strictEqual(decoded.username, 'testuser');
     assert.strictEqual(decoded.role, 'admin');
   });
 
-  it('rejects an invalid token', () => {
-    assert.throws(() => verifyToken('invalid-token'), { name: 'JsonWebTokenError' });
+  it('rejeita um token inválido', () => {
+    assert.throws(() => verifyToken('token-invalido'), { name: 'JsonWebTokenError' });
   });
 
-  it('includes expiration', () => {
+  it('inclui expiração', () => {
     const token = generateToken('admin');
     const decoded = verifyToken(token);
     assert.ok(decoded.exp);

@@ -67,7 +67,7 @@ app.use((req, res) => {
 });
 
 app.use((err, req, res, _next) => {
-  logger.error('Unhandled error', { error: err.message, stack: err.stack });
+  logger.error('Erro não tratado', { error: err.message, stack: err.stack });
   res.status(500).json({ error: 'Erro interno do servidor' });
 });
 
@@ -76,10 +76,10 @@ async function start() {
     validateConfig();
     await initializeSheets();
     app.listen(config.port, () => {
-      logger.info(`Server running on port ${config.port}`, { env: config.nodeEnv });
+      logger.info(`Servidor rodando na porta ${config.port}`, { env: config.nodeEnv });
     });
   } catch (err) {
-    logger.error('Failed to start server', { error: err.message });
+    logger.error('Falha ao iniciar servidor', { error: err.message });
     process.exit(1);
   }
 }

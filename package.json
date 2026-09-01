@@ -11,7 +11,7 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "keywords": ["attendance", "google-sheets", "education"],
+  "keywords": ["chamada", "presenca", "google-sheets", "educacao"],
   "license": "MIT",
   "dependencies": {
     "bcrypt": "^5.1.1",

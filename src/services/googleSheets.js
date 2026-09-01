@@ -81,10 +81,10 @@ async function ensureSheetExists(sheetName, headers) {
         valueInputOption: 'USER_ENTERED',
         requestBody: { values: [headers] },
       });
-      logger.info(`Sheet "${sheetName}" created with headers`);
+      logger.info(`Aba "${sheetName}" criada com cabeçalhos`);
     }
   } catch (err) {
-    logger.error(`Failed to ensure sheet "${sheetName}"`, { error: err.message });
+    logger.error(`Falha ao garantir existência da aba "${sheetName}"`, { error: err.message });
     throw err;
   }
 }
@@ -93,7 +93,7 @@ async function initializeSheets() {
   for (const sheet of Object.values(SHEETS)) {
     await ensureSheetExists(sheet.name, sheet.headers);
   }
-  logger.info('All Google Sheets tabs initialized');
+  logger.info('Todas as abas do Google Sheets foram inicializadas');
 }
 
 async function getAllAlunos() {

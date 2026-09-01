@@ -17,7 +17,7 @@ function validateConfig() {
   const required = ['jwtSecret', 'googleSheetsId', 'googleServiceAccountEmail', 'googlePrivateKey'];
   const missing = required.filter(key => !config[key]);
   if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+    throw new Error(`Variáveis de ambiente obrigatórias não configuradas: ${missing.join(', ')}`);
   }
 }
 
